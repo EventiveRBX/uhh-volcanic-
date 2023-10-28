@@ -1,0 +1,79 @@
+	local ignoreList = {}
+	local volcanicSpawn = workspace:WaitForChild("VolcanoPad")
+	local map = workspace.Map:FindFirstChildOfClass("Folder")
+	local baseplates = map:WaitForChild("Main"):GetChildren()
+	for i = 0, 7, 1 do
+		local volcanoBrick = Instance.new("Part")
+		coroutine.resume(setNetworkOwner, volcanoBrick)
+		local f = Instance.new("Fire")
+		f.Parent = volcanoBrick
+		volcanoBrick.CanCollide = false
+		local projectile = Instance.new("RocketPropulsion")
+		local vel = Instance.new("BodyVelocity")
+		vel.Velocity = Vector3.new(10,1000000,10)
+		vel.MaxForce = Vector3.new(15,5000000,15)
+		vel.P = 3000000000
+		volcanoBrick.Color = volcanoBrickColors[math.random(#volcanoBrickColors)]
+		volcanoBrick.Size = volcanoBrickSizes[math.random(#volcanoBrickSizes)]
+		volcanoBrick.Material = materials[math.random(#materials)]
+		vel.Parent = volcanoBrick
+		local p = Instance.new("Part")
+		p.Size = Vector3.new(volcanoBrick.Size.X,volcanoBrick.Size.Z,0.2)
+		local baseplate = baseplates[math.random(#baseplates)]
+		local landMinX, landMaxX = (baseplate.Position.X + p.Size.X/2 - baseplate.Size.X/2),(baseplate.Position.X - p.Size.X/2 + baseplate.Size.X/2)
+		local landMinZ, landMaxZ = (baseplate.Position.Z + p.Size.Z/2 - baseplate.Size.Z/2),(baseplate.Position.Z - p.Size.Z/2 + baseplate.Size.Z/2)
+		p.Position = Vector3.new(math.random(landMinX, landMaxX), 0.3, math.random(landMinZ, landMaxZ))
+		p.Color = Color3.new(0,0,0)
+		p.TopSurface = "Smooth"
+		p.BottomSurface = "Smooth"
+		p.Anchored = true
+		p.Transparency = 0.5
+		p.CanCollide = false
+		p.Parent = workspace
+		projectile.MaxSpeed = 125
+		projectile.MaxTorque = Vector3.new(0,50000000,0)
+		projectile.MaxThrust = 50000000
+		projectile.ThrustP = 3000
+		projectile.ThrustD = 3000
+		projectile.CartoonFactor = 1000
+		projectile.Parent = volcanoBrick
+		volcanoBrick.Name = "LavaPart"
+		volcanoBrick.TopSurface = Enum.SurfaceType.SmoothNoOutlines
+		volcanoBrick.BottomSurface = Enum.SurfaceType.SmoothNoOutlines
+		f.Size = volcanoBrick:GetMass()
+		f.Heat = volcanoBrick:GetMass()/2
+		local minX, maxX = (volcanicSpawn.Position.X + volcanoBrick.Size.X/2 - volcanicSpawn.Size.X/2), (volcanicSpawn.Position.X - volcanoBrick.Size.X/2 + volcanicSpawn.Size.X/2)
+		local minZ, maxZ = (volcanicSpawn.Position.Z + volcanoBrick.Size.Z/2 - volcanicSpawn.Size.Z/2), (volcanicSpawn.Position.Z - volcanoBrick.Size.Z/2 + volcanicSpawn.Size.Z/2)
+		volcanoBrick.Position = Vector3.new(math.random(minX, maxX), volcanicSpawn.Position.Y+0.5, math.random(minZ, maxZ))
+		local pPos = Vector3.new(math.random(landMinX, landMaxX), 0.3, math.random(landMinZ, landMaxZ))
+		local ray = Ray.new(volcanoBrick.Position, (pPos - volcanoBrick.Position).unit*500)
+		for _, item in pairs(workspace.Main:GetDescendants()) do
+			table.insert(ignoreList, item)
+		end
+		for _, item in pairs(workspace.Main.Mountains:GetDescendants()) do
+			table.insert(ignoreList, item)
+		end
+		table.insert(ignoreList,volcanicSpawn)
+		table.insert(ignoreList, volcanoBrick)
+		table.insert(ignoreList, p)
+		local hit, pos, normal, mat = workspace:FindPartOnRayWithIgnoreList(ray, ignoreList)
+		p.Position = pos
+		p.CFrame = CF(pos, pos+normal)
+		projectile.Target = p
+		volcanoBrick.Parent = workspace
+		projectile:Fire()
+		game:GetService('Debris'):AddItem(p, 15)
+		game:GetService('Debris'):AddItem(volcanoBrick, 7)
+		game:GetService('Debris'):AddItem(vel, 0.5)
+		volcanoBrick.Touched:connect(function(hit)
+			if game.Players:GetPlayerFromCharacter(hit.Parent) then
+				local hum = hit.Parent:WaitForChild("Humanoid")
+				hum:TakeDamage(1)
+			end
+		end)
+		projectile.ReachedTarget:connect(function()
+			volcanoBrick:Destroy()
+			p:Destroy()
+		end)
+		wait()
+	end
